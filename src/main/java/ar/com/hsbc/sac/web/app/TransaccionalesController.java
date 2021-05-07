@@ -108,9 +108,9 @@ class TransaccionalesController {
         Transaccional transaccional = null;
         ClienteExtendidoDTO client = clientes.get(docType + document);
         if (client != null) {
-            transaccional = Transaccional.builder().client(client).header(getSuccessResponse()).build();
+            transaccional = Transaccional.builder().client(client).header(UtilsController.getSuccessResponse()).build();
         } else {
-            transaccional = Transaccional.builder().header(getNotFoundResponse()).build();
+            transaccional = Transaccional.builder().header(UtilsController.getNotFoundResponse()).build();
         }
         dormir(500);
         return new ResponseEntity<>(transaccional, HttpStatus.OK);
@@ -128,11 +128,11 @@ class TransaccionalesController {
         Transaccional transaccional = null;
         DebitoAutomaticoMDW debito = debitosCuentaMDW.get(docType + document);
         if (debito != null) {
-            transaccional = Transaccional.builder().debitosCta(debito).header(getSuccessResponse()).build();
+            transaccional = Transaccional.builder().debitosCta(debito).header(UtilsController.getSuccessResponse()).build();
         } else {
             transaccional = Transaccional.builder()
                     .debitosCta(DebitoAutomaticoMDW.builder().returnCode("02").returnDescription("NOTFOUND").build())
-                    .header(getSuccessResponse()).build();
+                    .header(UtilsController.getSuccessResponse()).build();
         }
         dormir(500);
         return new ResponseEntity<>(transaccional, HttpStatus.OK);
@@ -144,7 +144,7 @@ class TransaccionalesController {
         debitosCta.stream().forEach(debito -> System.out.println("Alta de nuevo Debito CTA: " + debito));
         dormir(500);
         return new ResponseEntity<>(
-                Transaccional.builder().registrations(getRegistrations()).header(getSuccessResponse()).build(),
+                Transaccional.builder().registrations(getRegistrations()).header(UtilsController.getSuccessResponse()).build(),
                 HttpStatus.OK);
     }
 
@@ -154,9 +154,9 @@ class TransaccionalesController {
         Transaccional transaccional = null;
         List<Authority> authorityList = authorities.get(cuit);
         if (authorityList != null && !authorityList.isEmpty()) {
-            transaccional = Transaccional.builder().authorities(authorityList).header(getSuccessResponse()).build();
+            transaccional = Transaccional.builder().authorities(authorityList).header(UtilsController.getSuccessResponse()).build();
         } else {
-            transaccional = Transaccional.builder().header(getNotFoundResponse()).build();
+            transaccional = Transaccional.builder().header(UtilsController.getNotFoundResponse()).build();
         }
         dormir(500);
         return new ResponseEntity<>(transaccional, HttpStatus.OK);
@@ -167,29 +167,9 @@ class TransaccionalesController {
             @PathVariable("productCode") String productCode, @PathVariable("causeCode") String causeCode,
             @PathVariable("motiveCode") String motiveCode, @PathVariable("companyCode") String companyCode) {
         Transaccional transaccional = Transaccional.builder()
-                .message("COMPLETAR TODOS LOS DATOS SOLICITADOS EN CADA CASO.").header(getSuccessResponse()).build();
+                .message("COMPLETAR TODOS LOS DATOS SOLICITADOS EN CADA CASO.").header(UtilsController.getSuccessResponse()).build();
         dormir(500);
         return new ResponseEntity<>(transaccional, HttpStatus.OK);
-    }
-
-    // UTILS
-    private BaseResponse getSuccessResponse() {
-        return BaseResponse.builder().apiVersion("1.0").operationId("1509090912980128785211").statusCode("200")
-                .statusMessage("OK").successResponse("Ejecutado exitosamente!").build();
-    }
-
-    private BaseResponse getNotFoundResponse() {
-        ErrorResponse errorResponse = ErrorResponse.builder().faultString("SQLServerException")
-                .detail("The resultset returned an empty body.").faultCode("ESSR").build();
-        return BaseResponse.builder().apiVersion("1.0").operationId("1509090912980128785212").statusCode("404")
-                .statusMessage("NOTFOUND").errorResponse(errorResponse).build();
-    }
-
-    private BaseResponse getInternalErrorResponse() {
-        ErrorResponse errorResponse = ErrorResponse.builder().faultString("ServerException").detail("Internal Error.")
-                .faultCode("ESSR").build();
-        return BaseResponse.builder().apiVersion("1.0").operationId("1509090912980128785213").statusCode("500")
-                .statusMessage("INTERNALERROR").errorResponse(errorResponse).build();
     }
 
     private static List<CreditCardAdhesion> getCreditCardAdhesions() {
