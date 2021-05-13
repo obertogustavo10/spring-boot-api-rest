@@ -1,16 +1,14 @@
 package ar.com.hsbc.sac.web.app;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -20,7 +18,7 @@ import ar.com.hsbc.sac.web.model.CardAccessArrangement;
 import ar.com.hsbc.sac.web.model.GSMAmount;
 
 @RestController
-@RequestMapping("/tarjeta")
+@RequestMapping("/cambioCierre")
 public class CambioCierreController {
     private static CardAccessArrangement [] cardAccessArrangements= new CardAccessArrangement[3];
     private static Map <String,CardAccessArrangement []> enquireCard= new HashMap<>();
@@ -48,11 +46,11 @@ public class CambioCierreController {
         enquireCard.put("DNI10266305", cardAccessArrangements);
     }
     
-    @GetMapping("/consulta/{operationId}/{docType}/{docNum}")
+    @GetMapping("/tarjetas")
     public ResponseEntity<Transaccional> consultaTarjeta(
-       @PathVariable("operationId") String operationId,
-        @PathVariable("docType") String docType, 
-        @PathVariable("docNum") String docNum){
+       @RequestParam("operationId") String operationId,
+        @RequestParam("docType") String docType, 
+        @RequestParam("docNum") String docNum){
             String documento = docType+docNum;
             Transaccional transacc=null;
             if(enquireCard.containsKey(documento)){

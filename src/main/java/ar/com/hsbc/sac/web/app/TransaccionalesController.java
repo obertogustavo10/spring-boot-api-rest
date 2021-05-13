@@ -16,12 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.com.hsbc.sac.web.model.Authority;
-import ar.com.hsbc.sac.web.model.BaseResponse;
 import ar.com.hsbc.sac.web.model.ClienteExtendidoDTO;
 import ar.com.hsbc.sac.web.model.CreditCardAdhesion;
 import ar.com.hsbc.sac.web.model.CuentaDTO;
 import ar.com.hsbc.sac.web.model.DebitoAutomaticoMDW;
-import ar.com.hsbc.sac.web.model.ErrorResponse;
 
 @RestController
 @RequestMapping("/transaccion")
