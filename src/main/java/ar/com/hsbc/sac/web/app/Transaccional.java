@@ -28,5 +28,6 @@ class Transaccional {
     private List<TipoEmbozo> embozos;
     private List<Branch> branches;
     private ResponseMDW permisosMaxima;
+    private String status;
 
 }
