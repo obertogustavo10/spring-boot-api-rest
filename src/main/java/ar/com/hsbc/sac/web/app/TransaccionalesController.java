@@ -2,11 +2,13 @@ package ar.com.hsbc.sac.web.app;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -153,11 +155,15 @@ public class TransaccionalesController {
 
         private List<Branch> getSucursales() {
                 List<Branch> branches = new ArrayList<>();
+                Set<Integer> sucus = new HashSet<>();
                 for (int i = 0; i < 50; i++) {
                         Random random = new Random();
                         int codigo = random.ints(1, 500).findFirst().getAsInt();
-                        branches.add(Branch.builder().numBranch(String.valueOf(codigo)).branch("Sucursal " + codigo)
-                                        .build());
+                        if (!sucus.contains(codigo)) {
+                                branches.add(Branch.builder().numBranch(String.valueOf(codigo))
+                                                .branch("Sucursal " + codigo).build());
+                                sucus.add(codigo);
+                        }
                 }
                 Comparator<Branch> comparator = (branch1, branch2) -> Integer.valueOf(branch1.getNumBranch())
                                 - Integer.valueOf(branch2.getNumBranch());
