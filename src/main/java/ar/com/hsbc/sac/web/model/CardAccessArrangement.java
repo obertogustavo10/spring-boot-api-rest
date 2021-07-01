@@ -14,6 +14,7 @@ import lombok.Data;
 @Builder
 public class CardAccessArrangement {
     
+    
     private String cardNum;
     private String cardPrevNum;
     private String staffInd;
