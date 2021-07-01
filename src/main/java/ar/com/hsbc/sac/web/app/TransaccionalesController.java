@@ -1,31 +1,52 @@
 package ar.com.hsbc.sac.web.app;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.FontFactory;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.pdf.PdfWriter;
+
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import ar.com.hsbc.sac.web.model.Authority;
-
 import ar.com.hsbc.sac.web.model.Branch;
 import ar.com.hsbc.sac.web.model.ClienteExtendidoDTO;
 import ar.com.hsbc.sac.web.model.CreditCardAdhesion;
 import ar.com.hsbc.sac.web.model.CuentaDTO;
 import ar.com.hsbc.sac.web.model.ResponseMDW;
+import ch.qos.logback.core.util.FileUtil;
 
 @RestController
 @RequestMapping("/transaccional")
@@ -93,7 +114,7 @@ public class TransaccionalesController {
         @PostMapping("/grabar")
         public ResponseEntity<Transaccional> grabarTransaccional(
                         @RequestBody TransactionalRequest transactionalRequest) {
-                System.out.println("Grabar Transaccional " + transactionalRequest.getOption() + ": "
+                System.out.println("Grabar Transaccional " + transactionalRequest.getCommonParams().getOption() + ": "
                                 + transactionalRequest);
                 dormir(500);
                 return new ResponseEntity<>(Transaccional.builder().registration(getRegistration())
@@ -151,6 +172,148 @@ public class TransaccionalesController {
                                         .header(UtilsController.getSuccessResponse()).build(), HttpStatus.OK);
                 }
 
+        }
+
+        @PostMapping("/imprimir")
+        public ResponseEntity<Resource> imprimirTransaccional(@RequestBody TransactionalRequest transactionalRequest) {
+
+                var fullFilename = transactionalRequest.getCommonParams().getOption() + "_"
+                                + transactionalRequest.getCommonParams().getRequestNumber() + ".pdf";
+                Resource resource = null;
+                var titulo = obtenerTitulo(transactionalRequest.getCommonParams().getOption());
+                try {
+                        System.out.println("######################################################");
+                        Document document = new Document();
+                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                        PdfWriter.getInstance(document, baos);
+                        document.open();
+
+                        document.newPage();
+
+                        Path path = Paths.get(ClassLoader.getSystemResource("hsbc.png").toURI());
+                        Image img = Image.getInstance(path.toAbsolutePath().toString());
+                        img.scaleToFit(100, 100);
+                        img.setAlignment(Element.ALIGN_LEFT);
+                        document.add(img);
+
+                        document.add(new Paragraph(" "));
+
+                        Font font = FontFactory.getFont(FontFactory.TIMES_BOLD, 15, Font.UNDERLINE, BaseColor.BLACK);
+                        Paragraph parag = new Paragraph(titulo, font);
+                        parag.setAlignment(Element.ALIGN_CENTER);
+                        document.add(parag);
+
+                        document.add(new Paragraph(" "));
+                        document.add(new Paragraph(" "));
+
+                        ClienteExtendidoDTO cliente = clientes
+                                        .get(transactionalRequest.getCommonParams().getDocumentType()
+                                                        + transactionalRequest.getCommonParams().getDocumentNumber());
+
+                        System.out.println("AGREGAR DATOS TRANSACCIONAL");
+                        Map<String, String> datosTransaccional = new HashMap<>();
+                        datosTransaccional.put("Razón Social", cliente.getBusinessName());
+                        datosTransaccional.put("Documento", cliente.getDocType() + " " + cliente.getDocument());
+
+                        parag = new Paragraph();
+                        Set<String> keys = datosTransaccional.keySet();
+                        for (String key : keys) {
+                                parag.add(new Chunk(key + ": ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
+                                parag.add(new Chunk(datosTransaccional.get(key),
+                                                FontFactory.getFont(FontFactory.TIMES, 12)));
+                                parag.add(new Chunk("\n"));
+                                parag.setAlignment(Element.ALIGN_JUSTIFIED);
+                        }
+                        document.add(parag);
+                        document.add(new Paragraph(" "));
+                        document.add(new Paragraph(" "));
+                        document.add(new Paragraph("Información del pedido",
+                                        FontFactory.getFont(FontFactory.TIMES, 12, Font.UNDERLINE)));
+                        document.add(new Paragraph(" "));
+
+                        System.out.println("AGREGAR DATOS SOLICITUD");
+                        parag = new Paragraph();
+                        parag.add(new Chunk("Fecha: ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
+                        parag.add(new Chunk(new SimpleDateFormat("dd 'de' MMMM 'de' yyy", new Locale("es"))
+                                        .format(new Date()), FontFactory.getFont(FontFactory.TIMES, 12)));
+                        parag.add(new Chunk("\n"));
+                        parag.setAlignment(Element.ALIGN_JUSTIFIED);
+                        Map<String, String> datosSolicitud = obtenerDatosSolicitud(transactionalRequest);
+                        keys = datosSolicitud.keySet();
+                        for (String key : keys) {
+                                parag.add(new Chunk(key + ": ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
+                                parag.add(new Chunk(datosSolicitud.get(key),
+                                                FontFactory.getFont(FontFactory.TIMES, 12)));
+                                parag.add(new Chunk("\n"));
+                                parag.setAlignment(Element.ALIGN_JUSTIFIED);
+                        }
+                        document.add(parag);
+                        document.add(new Paragraph(" "));
+
+                        document.close();
+
+                        System.out.println("OBTENER FILE");
+                        // create a temporary file
+                        File tempFile = File.createTempFile(fullFilename, "");
+                        // Writes a string to the above temporary file
+                        Files.write(tempFile.toPath(), baos.toByteArray());
+                        System.out.println(tempFile.getName());
+                        System.out.println(tempFile.getAbsolutePath());
+                        resource = new UrlResource(FileUtil.fileToURL(tempFile));
+
+                } catch (Exception e) {
+                        System.out.println("ERROR");
+                        System.out.println(e.getMessage());
+                        return ResponseEntity.notFound().build();
+                } finally {
+                        System.out.println("######################################################");
+                }
+
+                return ResponseEntity.ok().contentType(MediaType.parseMediaType("application/pdf"))
+                                .header(HttpHeaders.CONTENT_DISPOSITION,
+                                                "attachment; filename=\"" + fullFilename + "\"")
+                                .body(resource);
+        }
+
+        private Map<String, String> obtenerDatosSolicitud(TransactionalRequest transactionalRequest) {
+                Map<String, String> obtenerDatosSolicitud = new HashMap<>();
+                obtenerDatosSolicitud.put("Número de Pedido",
+                                transactionalRequest.getCommonParams().getRequestNumber());
+                switch (transactionalRequest.getCommonParams().getOption()) {
+                        case "ReimprimirTarjeta":
+                        case "ReimprimirDiferida":
+                                String destino = transactionalRequest.getReprintTdParams().getSucursal().equals("-")
+                                                ? "Domicilio"
+                                                : transactionalRequest.getReprintTdParams().getSucursal();
+                                obtenerDatosSolicitud.put("Destino de reimpresión", destino);
+                                break;
+                        case "BajaDeTarjeta":
+                                obtenerDatosSolicitud.put("Número de Tarjeta",
+                                                transactionalRequest.getCommonParams().getProductNumber());
+                                break;
+                        default:
+                                break;
+                }
+
+                return obtenerDatosSolicitud;
+        }
+
+        private String obtenerTitulo(String option) {
+                var titulo = "";
+                switch (option) {
+                        case "ReimprimirTarjeta":
+                                titulo = "Reimpresión Común de Tarjeta Banelco";
+                                break;
+                        case "ReimprimirDiferida":
+                                titulo = "Reimpresión Diferida de Tarjeta Banelco";
+                                break;
+                        case "BajaDeTarjeta":
+                                titulo = "Baja de Tarjeta Banelco";
+                                break;
+                        default:
+                                break;
+                }
+                return titulo;
         }
 
         private List<Branch> getSucursales() {

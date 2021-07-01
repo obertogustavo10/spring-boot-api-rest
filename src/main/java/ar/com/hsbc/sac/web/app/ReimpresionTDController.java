@@ -1,6 +1,8 @@
 package ar.com.hsbc.sac.web.app;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -48,10 +50,22 @@ class ReimpresionTDController {
     }
 
     private List<TipoEmbozo> getEmbozos() {
-        TipoEmbozo t1 = TipoEmbozo.builder().destino("Exterior").embozo("122").categoria("7").build();
+        List<TipoEmbozo> embozos = new ArrayList<>();
+        Random random = new Random();
+        int codigo = random.ints(1, 10).findFirst().getAsInt();
+        if (codigo > 5) {
+            TipoEmbozo t1 = TipoEmbozo.builder().destino("Exterior").embozo("122").categoria("7").build();
+            embozos.add(t1);
+        }
         TipoEmbozo t2 = TipoEmbozo.builder().destino("Domicilio").embozo("114").categoria("7").build();
-        TipoEmbozo t3 = TipoEmbozo.builder().destino("Sucursal").embozo("112").categoria("0").build();
-        return List.of(t1, t2, t3);
+        embozos.add(t2);
+        codigo = random.ints(1, 5).findFirst().getAsInt();
+        if (codigo != 3) {
+            TipoEmbozo t3 = TipoEmbozo.builder().destino("Sucursal").embozo("112").categoria("0").build();
+            embozos.add(t3);
+        }
+
+        return embozos;
     }
 
 }
