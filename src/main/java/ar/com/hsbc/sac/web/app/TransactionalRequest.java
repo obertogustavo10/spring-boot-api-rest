@@ -15,5 +15,6 @@ public class TransactionalRequest {
     private TransaccionalDTO commonParams;
     private ClienteExtendidoDTO client;
     private ReimpresionTarjetaDTO reprintTdParams;
+    private CambioCierreDTO cambioCierreParams;
 
 }
