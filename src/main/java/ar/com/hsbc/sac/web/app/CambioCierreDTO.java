@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CambioCierreDTO {
-    private String tipoCliente, apellidoNombre, nroTarjeta, estado;
+    private String tipoCliente, apellidoNombre, nroTarjeta, estado, entityAdm, codeAdm;
 
 }

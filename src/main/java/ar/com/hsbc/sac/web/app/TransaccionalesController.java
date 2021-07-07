@@ -275,6 +275,57 @@ public class TransaccionalesController {
                                 .body(resource);
         }
 
+        @GetMapping("/parametros/relacionesTipoDocumental")
+        public ResponseEntity<Transaccional> consultarRelTipoDocumental(@RequestParam("operationId") String operationId,
+                        @RequestParam("causeCode") String causeCode, @RequestParam("reasonCode") String reasonCode,
+                        @RequestParam("documentType") String documentType,
+                        @RequestParam("documentNumber") String documentNumber) {
+                Transaccional transaccional = null;
+                if ("34".equals(reasonCode)) {
+                        transaccional = Transaccional.builder().adjuntarArchivos(true)
+                                        .relTipoDocumentalCliente(getRelTipoDocumentalCliente())
+                                        .relTipoDocumentalProducto(getRelTipoDocumentalProducto())
+                                        .header(UtilsController.getSuccessResponse()).build();
+                } else {
+                        transaccional = Transaccional.builder().adjuntarArchivos(false)
+                                        .header(UtilsController.getSuccessResponse()).build();
+                }
+                dormir(500);
+                return new ResponseEntity<>(transaccional, HttpStatus.OK);
+        }
+
+        private List<RelacionTipoDocumental> getRelTipoDocumentalCliente() {
+                RelacionTipoDocumental rela = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Acta de Asamblea")
+                                .clasificacion("Cliente").temporal("N").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D001").codClasificacion("CLI").existeEnSAC(true).build();
+                RelacionTipoDocumental rela1 = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Constancia de CUIL/CUIT")
+                                .clasificacion("Cliente").temporal("N").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D007").codClasificacion("CLI").build();
+                RelacionTipoDocumental rela2 = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Copia de Documento")
+                                .clasificacion("Cliente").temporal("N").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D011").codClasificacion("CLI").existeEnSAC(true).build();
+                return List.of(rela, rela1, rela2);
+        }
+
+        private List<RelacionTipoDocumental> getRelTipoDocumentalProducto() {
+                RelacionTipoDocumental rela = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Mail de Autorización")
+                                .clasificacion("Producto").temporal("S").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D040").codClasificacion("PRO").build();
+                RelacionTipoDocumental rela1 = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Printscreen de SAC (firmado)")
+                                .clasificacion("Producto").temporal("N").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D027").codClasificacion("PRO").build();
+                RelacionTipoDocumental rela2 = RelacionTipoDocumental.builder().causa("Pedidos")
+                                .motivo("Modificación de Documento").tipoDocumental("Mail de Autorización")
+                                .clasificacion("Producto").temporal("S").estado("A").codCausa("P").codMotivo("1114")
+                                .codTipoDocumental("D040").codClasificacion("PRO").build();
+                return List.of(rela, rela1, rela2);
+        }
+
         private Map<String, String> obtenerDatosSolicitud(TransactionalRequest transactionalRequest) {
                 Map<String, String> obtenerDatosSolicitud = new HashMap<>();
                 obtenerDatosSolicitud.put("Número de Pedido",

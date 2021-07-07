@@ -23,11 +23,14 @@ class Transaccional {
     private ClienteExtendidoDTO client;
     private ResponseMDW debitosCta;
     private List<Authority> authorities;
-    private List <CardAccessArrangement> cardAccArr;
+    private List<CardAccessArrangement> cardAccArr;
     private DebitCardDTO detalleTarjeta;
     private List<TipoEmbozo> embozos;
     private List<Branch> branches;
     private ResponseMDW permisosMaxima;
     private String status;
+    private boolean adjuntarArchivos;
+    private List<RelacionTipoDocumental> relTipoDocumentalCliente;
+    private List<RelacionTipoDocumental> relTipoDocumentalProducto;
 
 }
