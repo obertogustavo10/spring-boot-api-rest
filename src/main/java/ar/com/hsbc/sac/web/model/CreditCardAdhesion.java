@@ -19,5 +19,6 @@ public class CreditCardAdhesion {
     private String branchEntry;
     private String feeQuantity;
     private String adhesionFreezing;
+    private Authority authority;
 
 }

@@ -10,5 +10,6 @@ public class Registration {
     private String requestNumber;
     private String status;
     private String message;
+    private String messageAddFiles;
 
 }

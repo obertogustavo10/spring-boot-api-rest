@@ -1,5 +1,7 @@
 package ar.com.hsbc.sac.web.app;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,5 +31,9 @@ public class TransaccionalDTO {
     private String initContact;
     private String closeContact;
     private boolean retry;
+    private boolean adjuntarArchivos;
+    private List<RelacionTipoDocumental> relTipoDocumentalCliente;
+    private List<RelacionTipoDocumental> relTipoDocumentalProducto;
+    private String observation;
 
 }

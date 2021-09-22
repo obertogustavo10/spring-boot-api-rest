@@ -23,5 +23,6 @@ public class RelacionTipoDocumental {
     private String codClasificacion;
     private String codAcc;
     private boolean existeEnSAC;
+    private boolean esAddFiles;
 
 }

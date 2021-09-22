@@ -5,6 +5,7 @@ import java.util.List;
 import ar.com.hsbc.sac.web.model.Authority;
 import ar.com.hsbc.sac.web.model.BaseResponse;
 import ar.com.hsbc.sac.web.model.CardAccessArrangement;
+import ar.com.hsbc.sac.web.model.CardDTO;
 import ar.com.hsbc.sac.web.model.Branch;
 import ar.com.hsbc.sac.web.model.ClienteExtendidoDTO;
 import ar.com.hsbc.sac.web.model.DebitCardDTO;
@@ -24,6 +25,7 @@ class Transaccional {
     private ResponseMDW debitosCta;
     private List<Authority> authorities;
     private List<CardAccessArrangement> cardAccArr;
+    private List<CardDTO> cards;
     private DebitCardDTO detalleTarjeta;
     private List<TipoEmbozo> embozos;
     private List<Branch> branches;
@@ -32,5 +34,7 @@ class Transaccional {
     private boolean adjuntarArchivos;
     private List<RelacionTipoDocumental> relTipoDocumentalCliente;
     private List<RelacionTipoDocumental> relTipoDocumentalProducto;
+    private AttachFileDTO attached;
+    private PrintDTO print;
 
 }

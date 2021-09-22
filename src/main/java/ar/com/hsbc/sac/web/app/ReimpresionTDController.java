@@ -22,11 +22,14 @@ class ReimpresionTDController {
     public ResponseEntity<Transaccional> consultaDetalleTarjeta(@RequestParam("operationId") String operationId,
             @RequestParam("numero") String numero) {
         if ("4517610097274041".equals(numero.trim())) {
-            return new ResponseEntity<>(Transaccional.builder().detalleTarjeta(getDebitCardDetails(numero))
-                    .header(UtilsController.getSuccessResponse()).build(), HttpStatus.OK);
+            return new ResponseEntity<>(Transaccional.builder().message("Descripción de embozo")
+                    .detalleTarjeta(getDebitCardDetails(numero)).header(UtilsController.getSuccessResponse()).build(),
+                    HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(Transaccional.builder().detalleTarjeta(DebitCardDTO.builder().build())
-                    .header(UtilsController.getNotFoundResponse()).build(), HttpStatus.OK);
+            return new ResponseEntity<>(
+                    Transaccional.builder().message("").detalleTarjeta(DebitCardDTO.builder().build())
+                            .header(UtilsController.getNotFoundResponse()).build(),
+                    HttpStatus.OK);
         }
     }
 

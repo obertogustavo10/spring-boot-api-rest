@@ -1,35 +1,20 @@
 package ar.com.hsbc.sac.web.app;
 
-import java.io.ByteArrayOutputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.PdfWriter;
+import javax.servlet.http.HttpServletRequest;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,7 +23,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import ar.com.hsbc.sac.web.model.Authority;
 import ar.com.hsbc.sac.web.model.Branch;
@@ -46,12 +33,12 @@ import ar.com.hsbc.sac.web.model.ClienteExtendidoDTO;
 import ar.com.hsbc.sac.web.model.CreditCardAdhesion;
 import ar.com.hsbc.sac.web.model.CuentaDTO;
 import ar.com.hsbc.sac.web.model.ResponseMDW;
-import ch.qos.logback.core.util.FileUtil;
 
 @RestController
 @RequestMapping("/transaccional")
 public class TransaccionalesController {
 
+        private int contador = 1;
         private static Map<String, ClienteExtendidoDTO> clientes = new HashMap<>();
         private static Map<String, ResponseMDW> debitosCuentaMDW = new HashMap<>();
         private static Map<String, List<Authority>> authorities = new HashMap<>();
@@ -116,9 +103,9 @@ public class TransaccionalesController {
                         @RequestBody TransactionalRequest transactionalRequest) {
                 System.out.println("Grabar Transaccional " + transactionalRequest.getCommonParams().getOption() + ": "
                                 + transactionalRequest);
+                System.out.println("Observaciones: " + transactionalRequest.getCommonParams().getObservation());
                 dormir(500);
                 return new ResponseEntity<>(Transaccional.builder().registration(getRegistration())
-
                                 .header(UtilsController.getSuccessResponse()).build(), HttpStatus.OK);
         }
 
@@ -142,8 +129,8 @@ public class TransaccionalesController {
                         @RequestParam("productCode") String productCode, @RequestParam("causeCode") String causeCode,
                         @RequestParam("reasonCode") String reasonCode,
                         @RequestParam("companyCode") String companyCode) {
-                Transaccional transaccional = Transaccional.builder()
-                                .message("COMPLETAR TODOS LOS DATOS SOLICITADOS EN CADA CASO.")
+                Transaccional transaccional = Transaccional.builder().message(
+                                "COMPLETAR TODOS LOS DATOS SOLICITADOS EN CADA CASO.\nVeriricar:\nQué?: Que la tarjeta esté activa.\nDónde?: En BRAP\nTiempo de Resolución: aproximadamente 10 días hábiles.\nSi la tarjeta está bliqueada entonces no podrá procesarse.")
                                 .header(UtilsController.getSuccessResponse()).build();
                 dormir(500);
                 return new ResponseEntity<>(transaccional, HttpStatus.OK);
@@ -174,105 +161,17 @@ public class TransaccionalesController {
 
         }
 
-        @PostMapping("/imprimir")
-        public ResponseEntity<Resource> imprimirTransaccional(@RequestBody TransactionalRequest transactionalRequest) {
+        @GetMapping("/imprimir")
+        public ResponseEntity<Transaccional> imprimir(@RequestParam String operationId,
+                        @RequestParam String requestNumber, @RequestParam String opcion, @RequestParam String name) {
+                System.out.println("######################## IMPRIMIR ");
+                var fullFilename = opcion + "_" + requestNumber;
+                PrintDTO print = PrintDTO.builder().url("http://webs.ucm.es/BUCM/servicios/doc5270.pdf")
+                                .filename(fullFilename).fileExtension("pdf").build();
+                Transaccional response = Transaccional.builder().print(print)
+                                .header(UtilsController.getSuccessResponse()).build();
 
-                var fullFilename = transactionalRequest.getCommonParams().getOption() + "_"
-                                + transactionalRequest.getCommonParams().getRequestNumber() + ".pdf";
-                Resource resource = null;
-                var titulo = obtenerTitulo(transactionalRequest.getCommonParams().getOption());
-                try {
-                        System.out.println("######################################################");
-                        Document document = new Document();
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        PdfWriter.getInstance(document, baos);
-                        document.open();
-
-                        document.newPage();
-
-                        Path path = Paths.get(ClassLoader.getSystemResource("hsbc.png").toURI());
-                        Image img = Image.getInstance(path.toAbsolutePath().toString());
-                        img.scaleToFit(100, 100);
-                        img.setAlignment(Element.ALIGN_LEFT);
-                        document.add(img);
-
-                        document.add(new Paragraph(" "));
-
-                        Font font = FontFactory.getFont(FontFactory.TIMES_BOLD, 15, Font.UNDERLINE, BaseColor.BLACK);
-                        Paragraph parag = new Paragraph(titulo, font);
-                        parag.setAlignment(Element.ALIGN_CENTER);
-                        document.add(parag);
-
-                        document.add(new Paragraph(" "));
-                        document.add(new Paragraph(" "));
-
-                        ClienteExtendidoDTO cliente = clientes
-                                        .get(transactionalRequest.getCommonParams().getDocumentType()
-                                                        + transactionalRequest.getCommonParams().getDocumentNumber());
-
-                        System.out.println("AGREGAR DATOS TRANSACCIONAL");
-                        Map<String, String> datosTransaccional = new HashMap<>();
-                        datosTransaccional.put("Razón Social", cliente.getBusinessName());
-                        datosTransaccional.put("Documento", cliente.getDocType() + " " + cliente.getDocument());
-
-                        parag = new Paragraph();
-                        Set<String> keys = datosTransaccional.keySet();
-                        for (String key : keys) {
-                                parag.add(new Chunk(key + ": ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
-                                parag.add(new Chunk(datosTransaccional.get(key),
-                                                FontFactory.getFont(FontFactory.TIMES, 12)));
-                                parag.add(new Chunk("\n"));
-                                parag.setAlignment(Element.ALIGN_JUSTIFIED);
-                        }
-                        document.add(parag);
-                        document.add(new Paragraph(" "));
-                        document.add(new Paragraph(" "));
-                        document.add(new Paragraph("Información del pedido",
-                                        FontFactory.getFont(FontFactory.TIMES, 12, Font.UNDERLINE)));
-                        document.add(new Paragraph(" "));
-
-                        System.out.println("AGREGAR DATOS SOLICITUD");
-                        parag = new Paragraph();
-                        parag.add(new Chunk("Fecha: ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
-                        parag.add(new Chunk(new SimpleDateFormat("dd 'de' MMMM 'de' yyy", new Locale("es"))
-                                        .format(new Date()), FontFactory.getFont(FontFactory.TIMES, 12)));
-                        parag.add(new Chunk("\n"));
-                        parag.setAlignment(Element.ALIGN_JUSTIFIED);
-                        Map<String, String> datosSolicitud = obtenerDatosSolicitud(transactionalRequest);
-                        keys = datosSolicitud.keySet();
-                        for (String key : keys) {
-                                parag.add(new Chunk(key + ": ", FontFactory.getFont(FontFactory.TIMES, 12, Font.BOLD)));
-                                parag.add(new Chunk(datosSolicitud.get(key),
-                                                FontFactory.getFont(FontFactory.TIMES, 12)));
-                                parag.add(new Chunk("\n"));
-                                parag.setAlignment(Element.ALIGN_JUSTIFIED);
-                        }
-                        document.add(parag);
-                        document.add(new Paragraph(" "));
-
-                        document.close();
-
-                        System.out.println("OBTENER FILE");
-                        // create a temporary file
-                        File tempFile = File.createTempFile(fullFilename, "");
-                        // Writes a string to the above temporary file
-                        Files.write(tempFile.toPath(), baos.toByteArray());
-                        System.out.println(tempFile.getName());
-                        System.out.println(tempFile.getAbsolutePath());
-                        resource = new UrlResource(FileUtil.fileToURL(tempFile));
-
-                } catch (Exception e) {
-                        System.out.println("ERROR");
-                        System.out.println(e.getMessage());
-                        return ResponseEntity.notFound().build();
-                } finally {
-                        System.out.println("######################################################");
-                }
-
-                return ResponseEntity.ok().contentType(MediaType.parseMediaType("application/pdf"))
-                                .header(HttpHeaders.CONTENT_DISPOSITION,
-                                                "attachment; filename=\"" + fullFilename + "\"")
-                                .body(resource);
+                return new ResponseEntity<>(response, HttpStatus.OK);
         }
 
         @GetMapping("/parametros/relacionesTipoDocumental")
@@ -281,17 +180,40 @@ public class TransaccionalesController {
                         @RequestParam("documentType") String documentType,
                         @RequestParam("documentNumber") String documentNumber) {
                 Transaccional transaccional = null;
-                if ("34".equals(reasonCode)) {
-                        transaccional = Transaccional.builder().adjuntarArchivos(true)
-                                        .relTipoDocumentalCliente(getRelTipoDocumentalCliente())
-                                        .relTipoDocumentalProducto(getRelTipoDocumentalProducto())
-                                        .header(UtilsController.getSuccessResponse()).build();
-                } else {
-                        transaccional = Transaccional.builder().adjuntarArchivos(false)
-                                        .header(UtilsController.getSuccessResponse()).build();
-                }
+                transaccional = Transaccional.builder().adjuntarArchivos(true)
+                                .relTipoDocumentalCliente(new ArrayList<>())
+                                .relTipoDocumentalProducto(getRelTipoDocumentalProducto())
+                                .header(UtilsController.getSuccessResponse()).build();
                 dormir(500);
                 return new ResponseEntity<>(transaccional, HttpStatus.OK);
+        }
+
+        @GetMapping("/generarNumeroPedido")
+        public ResponseEntity<Transaccional> generarNumeroPedido(@RequestParam("operationId") String operationId,
+                        @RequestParam("companyCode") String companyCode, @RequestParam("causeCode") String causeCode) {
+                Transaccional transaccional = Transaccional.builder()
+                                .message(String.valueOf(generateRegistrationNumber()))
+                                .header(UtilsController.getSuccessResponse()).build();
+                dormir(2000);
+                return new ResponseEntity<>(transaccional, HttpStatus.OK);
+        }
+
+        @PostMapping(value = "/uploadFile", consumes = { MediaType.APPLICATION_JSON_VALUE,
+                        MediaType.MULTIPART_FORM_DATA_VALUE })
+        public ResponseEntity<Transaccional> uploadFile(
+                        @RequestPart(value = "file", required = false) MultipartFile file,
+                        @RequestPart("attached") AttachFileDTO attached, HttpServletRequest request) {
+                var serverFile = new File("C:\\log\\" + file.getOriginalFilename());
+                try (var stream = new BufferedOutputStream(new FileOutputStream(serverFile))) {
+                        byte[] bytes = file.getBytes();
+                        stream.write(bytes);
+                } catch (Exception e) {
+                        System.out.println("Error");
+                }
+                dormir(100);
+                return new ResponseEntity<>(Transaccional.builder().attached(attached)
+                                .header(UtilsController.getSuccessResponse()).build(),
+                                HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         private List<RelacionTipoDocumental> getRelTipoDocumentalCliente() {
@@ -320,7 +242,7 @@ public class TransaccionalesController {
                                 .clasificacion("Producto").temporal("N").estado("A").codCausa("P").codMotivo("1114")
                                 .codTipoDocumental("D027").codClasificacion("PRO").build();
                 RelacionTipoDocumental rela2 = RelacionTipoDocumental.builder().causa("Pedidos")
-                                .motivo("Modificación de Documento").tipoDocumental("Mail de Autorización")
+                                .motivo("Modificación de Documento").tipoDocumental("Copia de recibo")
                                 .clasificacion("Producto").temporal("S").estado("A").codCausa("P").codMotivo("1114")
                                 .codTipoDocumental("D040").codClasificacion("PRO").build();
                 return List.of(rela, rela1, rela2);
@@ -413,72 +335,89 @@ public class TransaccionalesController {
 
                 // Authorities
                 // 20110083298
-                Authority auth1 = Authority.builder().admitsReservation("1").authority("88887")
-                                .cuitNumber("20110083298").description("HUGO GUTIERREZ   ").estc("0")
-                                .longReferenceN("7").originBank("00070999").originBankName("BANCO DE GALICIA")
-                                .presentation("ALARMAS").registerType("5").subAuthority("195").build();
-                Authority auth2 = Authority.builder().admitsReservation("1").authority("88887")
-                                .cuitNumber("20110083298").description("AYS ALARMAS     ").estc("0").longReferenceN("6")
-                                .originBank("00270055").originBankName("BANCO SUPERVIELLE  ").presentation("ABONO")
-                                .registerType("5").subAuthority("600").build();
+                var auth1 = Authority.builder().admitsReservation("1").authority("88887").cuitNumber("20110083298")
+                                .description("HUGO GUTIERREZ   ").estc("0").longReferenceN("7").originBank("00070999")
+                                .originBankName("BANCO DE GALICIA").presentation("ALARMAS").registerType("5")
+                                .subAuthority("195").build();
+                var auth2 = Authority.builder().admitsReservation("1").authority("88887").cuitNumber("20110083298")
+                                .description("AYS ALARMAS     ").estc("0").longReferenceN("6").originBank("00270055")
+                                .originBankName("BANCO SUPERVIELLE  ").presentation("ABONO").registerType("5")
+                                .subAuthority("600").build();
                 authorities.put("20110083298", List.of(auth1, auth2));
 
                 // 20110083298
-                auth1 = Authority.builder().admitsReservation("1").authority("88888").cuitNumber("20108496380")
-                                .description("JUAN GARCIA   ").estc("0").longReferenceN("9").originBank("00070999")
+                auth1 = Authority.builder().admitsReservation("1").authority("88881").cuitNumber("20108496380")
+                                .description("JUAN GARCIA   ").estc("0").longReferenceN("4").originBank("00070999")
                                 .originBankName("BANCO DE GALICIA Y BUENOS AIRES").presentation("HOGAR")
                                 .registerType("5").subAuthority("200").build();
-                auth2 = Authority.builder().admitsReservation("1").authority("88888").cuitNumber("20108496380")
-                                .description("TOTALHOGAR").estc("0").longReferenceN("9").originBank("00270055")
+                auth2 = Authority.builder().admitsReservation("1").authority("88882").cuitNumber("20108496380")
+                                .description("TOTALHOGAR").estc("0").longReferenceN("6").originBank("00270055")
                                 .originBankName("BANCO SUPERVIELLE  ").presentation("CUOTA").registerType("5")
                                 .subAuthority("250").build();
-                var auth3 = Authority.builder().admitsReservation("1").authority("88888").cuitNumber("20108496380")
-                                .description("COMPRAS PROGRAMADAS").estc("0").longReferenceN("4").originBank("00330055")
+                var auth3 = Authority.builder().admitsReservation("1").authority("88883").cuitNumber("20108496380")
+                                .description("COMPRAS PROGRAMADAS").estc("0").longReferenceN("1").originBank("00330055")
                                 .originBankName("BANCO FRANCES  ").presentation("CUOTAS").registerType("5")
                                 .subAuthority("223").build();
-                var auth4 = Authority.builder().admitsReservation("1").authority("88888").cuitNumber("20108496380")
-                                .description("ENVIOS EXPRESS").estc("0").longReferenceN("5").originBank("00440055")
+                var auth4 = Authority.builder().admitsReservation("1").authority("88884").cuitNumber("20108496380")
+                                .description("ENVIOS EXPRESS").estc("0").longReferenceN("2").originBank("00440055")
                                 .originBankName("BANCO SANTANDER  ").presentation("MENSUALIDAD").registerType("5")
                                 .subAuthority("250").build();
                 authorities.put("20108496380", List.of(auth1, auth2, auth3, auth4));
         }
 
         private static List<CreditCardAdhesion> getCreditCardAdhesions() {
+
+                var auth1 = Authority.builder().admitsReservation("1").authority("88887").cuitNumber("20110083298")
+                                .description("HUGO GUTIERREZ   ").estc("0").longReferenceN("7").originBank("00070999")
+                                .originBankName("BANCO DE GALICIA").presentation("ALARMAS").registerType("5")
+                                .subAuthority("195").build();
+
+                var auth3 = Authority.builder().admitsReservation("1").authority("88888").cuitNumber("20108496380")
+                                .description("COMPRAS PROGRAMADAS").estc("0").longReferenceN("4").originBank("00330055")
+                                .originBankName("BANCO FRANCES  ").presentation("CUOTAS").registerType("5")
+                                .subAuthority("223").build();
+
                 CreditCardAdhesion credit1 = CreditCardAdhesion.builder().accountNumber("00000000571033854")
                                 .adhesionFreezing("0").branch("057").branchEntry("034").ctl4("001").currency("080")
                                 .entityNumber("00010").feeQuantity("000").invoiceControl("0")
                                 .limitToControl("00999999999999999").referenceNumber("00142010000542")
-                                .subentityNumber("002").build();
+                                .subentityNumber("002").authority(auth1).build();
 
                 CreditCardAdhesion credit2 = CreditCardAdhesion.builder().accountNumber("00000000571033854")
                                 .adhesionFreezing("0").branch("057").branchEntry("034").ctl4("001").currency("080")
                                 .entityNumber("00010").feeQuantity("000").invoiceControl("0")
                                 .limitToControl("00999999999999999").referenceNumber("00142010001255")
-                                .subentityNumber("002").build();
+                                .subentityNumber("002").authority(auth1).build();
 
                 CreditCardAdhesion credit3 = CreditCardAdhesion.builder().accountNumber("00000000571033854")
                                 .adhesionFreezing("0").branch("057").branchEntry("034").ctl4("001").currency("080")
                                 .entityNumber("00010").feeQuantity("000").invoiceControl("0")
                                 .limitToControl("00999999999999999").referenceNumber("00172128001792")
-                                .subentityNumber("002").build();
+                                .subentityNumber("002").authority(auth3).build();
 
                 return List.of(credit1, credit2, credit3);
         }
 
         private static Registration getRegistration() {
                 Registration registration = null;
-                Random random = new Random();
-                int codigo = random.ints(250005000, 250009999).findFirst().getAsInt();
-                int codigo2 = random.ints(1, 20).findFirst().getAsInt();
+                var random = new Random();
+                int codigo = generateRegistrationNumber();
+                var codigo2 = random.ints(1, 20).findFirst().getAsInt();
                 if (codigo2 > 10) {
                         registration = Registration.builder().requestNumber(String.valueOf(codigo)).status("Derivado")
-                                        .message("Registración derivada para ser autorizada por un operador.").build();
+                                        .message("Registración derivada para ser autorizada por un operador.")
+                                        .messageAddFiles("Error al grabar uno o más documentos adjuntos").build();
                 } else {
                         registration = Registration.builder().requestNumber(String.valueOf(codigo)).status("Resuelto")
                                         .message("Registración correcta.").build();
                 }
 
                 return registration;
+        }
+
+        private static int generateRegistrationNumber() {
+                var random = new Random();
+                return random.ints(250005000, 250009999).findFirst().getAsInt();
         }
 
         private void dormir(int tiempo) {
