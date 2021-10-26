@@ -8,6 +8,7 @@ import ar.com.hsbc.sac.web.model.CardAccessArrangement;
 import ar.com.hsbc.sac.web.model.CardDTO;
 import ar.com.hsbc.sac.web.model.Branch;
 import ar.com.hsbc.sac.web.model.ClienteExtendidoDTO;
+import ar.com.hsbc.sac.web.model.CuentaRelDTO;
 import ar.com.hsbc.sac.web.model.DebitCardDTO;
 import ar.com.hsbc.sac.web.model.ResponseMDW;
 import ar.com.hsbc.sac.web.model.TipoEmbozo;
@@ -36,5 +37,6 @@ class Transaccional {
     private List<RelacionTipoDocumental> relTipoDocumentalProducto;
     private AttachFileDTO attached;
     private PrintDTO print;
+    private List<CuentaRelDTO> relatedAccounts;
 
 }
