@@ -38,7 +38,7 @@ public class RelacionamientoCtasController {
         
         cuentaRel[3] = CuentaRelDTO.builder().account("3008265831").accountRelated("").accounts(null).banelcoCard("")
             .codigo(null).detProduct("Caja Ahorros u$s").document("000000010266305").indivEmpres("0").ordConj("2")
-            .product("3008265831").resultState(false).status("Cuenta Primaria").tipDoc("DNI").tipProduct("2").tipRelatedAccount("").denominacion("").build();
+            .product("3008265831").resultState(false).status("Cuenta Primaria").tipDoc("DNI").tipProduct("3").tipRelatedAccount("").denominacion("").build();
         cuentaRelMap.put("DNI102663054517610097274041", cuentaRel);
     }
 
@@ -48,12 +48,12 @@ public class RelacionamientoCtasController {
         this.setAccountsRel();
         Transaccional transacc=null;
         if(cuentaRelMap.containsKey(tipDoc+documento+producto)){
-            for(CuentaRelDTO ctaRel:cuentaRelMap.get(tipDoc+documento+producto)){
+            /* for(CuentaRelDTO ctaRel:cuentaRelMap.get(tipDoc+documento+producto)){
                 if(!"Cuenta Principal".equals(ctaRel.getStatus().trim()) && !"Cuenta Primaria".equals(ctaRel.getStatus().trim())){
                         ctaRel.setStatus("Sin Asignar");
                 }
                 ctaRel.setDenominacion(ctaRel.getStatus());
-            }
+            } */
             transacc = Transaccional.builder().relatedAccounts(Arrays.asList(cuentaRelMap.get(tipDoc+documento+producto)))
                 .header(UtilsController.getSuccessResponse()).build();
 
